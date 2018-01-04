@@ -1,6 +1,7 @@
-from numpy import array, tile, sum
+from numpy import array, tile, sum, empty
 import operator
 from collections import defaultdict
+import re
 
 def createDataSet():
     group = array([
@@ -19,4 +20,19 @@ def classify0(inX, dataset, labels, k):
     for indice in set_indices:
         label = labels[indice]
         label_counts[label] += 1
-    sorted(label_counts, key=operator)
+    return sorted(label_counts.items(), key=operator.itemgetter(1), reverse=True)[0][0]
+
+
+def file2matrix(filename):
+    with open(filename) as fr:
+        readlines = fr.readlines()
+    ret_mat = empty((len(readlines), 3))
+    labels = []
+    for index, line in enumerate(readlines):
+        texts = line.strip().split('\t')
+        ret_mat[index, :] = texts[0:3]
+        labels.push(texts[-1])
+    return ret_mat, labels
+
+group, labels = createDataSet()
+print(classify0([0, 0], group, labels, 3))
