@@ -16,11 +16,11 @@ def handwriting_test():
     training_path = os.path.join(os.path.dirname(__file__), 'digits', 'trainingDigits')
     filenames = os.listdir(training_path)
     vec_matrix = np.empty((len(filenames), 32 * 32))
-    labels = np.empty(len(filenames))
+    labels = []
     for i, filename in enumerate(filenames):
         abspath = os.path.join(training_path, filename)
         vec_matrix[i] = img2vector(abspath)
-        labels[i] = filename.split('_')[0]
+        labels.append(filename.split('_')[0])
 
     test_path = os.path.join(os.path.dirname(__file__), 'digits', 'testDigits')
     testfiles = os.listdir(test_path)
@@ -32,6 +32,7 @@ def handwriting_test():
         result = kNN.classify0(vector, vec_matrix, labels, 3)
         label = filename.split('_')[0]
         if result != label:
+            print('The real result is %s, but the calc result is %s' % (label, result))            
             error_count += 1
     print('The total error rate is %f' % (error_count / float(test_count)))
     
