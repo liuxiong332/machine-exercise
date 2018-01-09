@@ -62,3 +62,32 @@ def create_tree(dataset, labels):
         new_labels = labels[0:axis] + labels[axis + 1:]
         feature_tree[val] = create_tree(subset, new_labels)
     return { feature: feature_tree }
+
+def retrieve_tree(i):
+    list_trees = [
+        {'no surfacing': {0: 'no', 1: {'flippers': {0: 'no', 1: 'yes'}}}},
+        {'no surfacing': {0: 'no', 1: {'flippers': {0: {'head': {0: 'no', 1: 'yes'}}, 1: 'yes'}}}}
+    ]
+    return list_trees[i]
+
+def get_tree_depth(feature_tree):
+    depth = 1
+    feature_axe = list(feature_tree.keys())[0]
+    second_dict = feature_tree[feature_axe]
+    for val in second_dict.values():
+        if isinstance(val, dict):
+            depth = max(depth, get_tree_depth(val) + 1)
+        else:
+            depth = max(depth, 1)
+    return depth
+
+def get_leafs_count(feature_tree):
+    leaf_count = 0
+    axe = list(feature_tree.keys())[0]
+    second_dict = feature_tree[axe]
+    for val in second_dict.values():
+        if isinstance(val, dict):
+            leaf_count += get_leafs_count(val)
+        else:
+            leaf_count += 1
+    return leaf_count
