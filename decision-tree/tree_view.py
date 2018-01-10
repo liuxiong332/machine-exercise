@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from decision_tree import get_tree_depth, get_leafs_count
 
 decision_node = dict(boxstyle='sawtooth', facecolor='0.8')
 leaf_node = dict(boxstyle='round4', facecolor='0.8')
@@ -23,4 +24,26 @@ def create_plot():
     plot_midtext(ax, (0.8, 0.1), (0.3, 0.8), 'leaf')
     fig.show()
 
-def plot_tree(tree, parent_pt):
+def plot_tree(ax, tree, parent_pt, delta_height, delta_width):
+    label = list(tree.keys())[0]
+    child_count = len(tree[label])
+    xoffset = parent_pt[0] - (child_count // 2 - 0.5) * delta_width
+    ynode = parent_pt[1] - delta_width
+    plot_node(ax, label, parent_pt, parent_pt, decision_node)  # plot the center node    
+    for index, (val, subtree) in enumerate(tree[label].items()):
+        node_pt =  [xoffset + index * delta_width, ynode]
+        plot_midtext(ax, node_pt, parent_pt, val)                    
+        if isinstance(subtree, dict):
+            plot_node(ax, '', node_pt, parent_pt, decision_node)            
+            plot_tree(ax, subtree, node_pt, delta_height, delta_width)
+        else:
+            plot_node(ax, subtree, node_pt, parent_pt, leaf_node)
+
+def create_tree_plot(tree):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    depth = get_tree_depth(tree)
+    leafs = get_leafs_count(tree)
+    delta_height = 1 / (depth - 1)
+    delta_width = 1 / leafs
+    plot_tree(ax, tree, (0.5, 1), delta_height, delta_width)
