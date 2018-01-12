@@ -63,6 +63,15 @@ def create_tree(dataset, labels):
         feature_tree[val] = create_tree(subset, new_labels)
     return { feature: feature_tree }
 
+def classify(input_tree, feat_labels, test_vec):
+    label = list(input_tree.keys())[0]
+    index = feat_labels.index(label)
+    test_val = test_vec[index]
+    second_tree = input_tree[label].get(test_val)
+    if isinstance(second_tree, dict):
+        return classify(second_tree, feat_labels, test_vec)
+    return second_tree
+
 def retrieve_tree(i):
     list_trees = [
         {'no surfacing': {0: 'no', 1: {'flippers': {0: 'no', 1: 'yes'}}}},
@@ -91,3 +100,4 @@ def get_leafs_count(feature_tree):
         else:
             leaf_count += 1
     return leaf_count
+
