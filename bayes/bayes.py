@@ -22,7 +22,7 @@ def words2vec(vocab_list, input_set):
     ret_vec = [0] * len(vocab_list)
     for word in input_set:
         if word in vocab_list:
-            ret_vec[vocab_list.index(word)] = 1
+            ret_vec[vocab_list.index(word)] += 1
         else:
             print('The word: %s is not in my vocabulary' % word)
     return ret_vec
