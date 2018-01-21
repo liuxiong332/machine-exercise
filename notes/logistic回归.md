@@ -22,3 +22,5 @@ $$
 为使得尽量多的点满足上述表达式，我们使用**最大似然估计**来估计w和b。
 
 上述y是分布在$[0, 1]$区间，设$p(y=1|x) = \pi(x) =  \frac{1}{1 + e^{-wx-b}}$ ，则$p(y=0|x) = 1 - \pi(x) = \frac{1}{1 + e^{wx + b}}$
+
+http://blog.csdn.net/ariessurfer/article/details/41310525
