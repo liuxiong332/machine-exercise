@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+import time
+
+start_time = time.time()
 
 features = ['accommodates','bedrooms','bathrooms','beds','price','minimum_nights','maximum_nights','number_of_reviews']
 
@@ -23,3 +26,6 @@ test_df['squared_error'] = (test_df['predicted_price'] - test_df['price'])**(2)
 mse = test_df['squared_error'].mean()
 rmse = mse ** (1/2)
 print(rmse)
+
+end_time = time.time()
+print('spent time %f s' % (end_time - start_time))
