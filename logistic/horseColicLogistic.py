@@ -15,7 +15,7 @@ def colic_test():
   error_count = 0
   with open('horseColicTest.txt') as fr:
     lines = fr.readlines()
-    for line in lines:  
+    for line in lines:
       line_data = line.strip().split('\t')
       line_data = [float(d) for d in line_data]
       label_val = np.dot(np.array(line_data[:-1]), weights)
