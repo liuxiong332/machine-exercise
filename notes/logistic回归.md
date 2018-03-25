@@ -81,5 +81,5 @@ m为每次小批量下降的样本数目，一般为32，64，128等，$\frac{1}
 
 对于logistic回归来说，我们一般使用对数损失函数来评估其精确度。
 $$
-cost = \frac{1}{N}\sum_{i = 1}^{N}[-y_ilogy_i - (1 - y_1)log(1- y_i)]
+cost = \frac{1}{N}\sum_{i = 1}^{N}[-y_ilogh(x_i) - (1 - y_1)log(1- h(x_i))]
 $$
