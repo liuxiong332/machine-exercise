@@ -14,16 +14,20 @@ import itertools
 from imblearn.over_sampling import SMOTE
 
 def calc_auc(x_train, y_train, c):
-  kf = StratifiedKFold(5)  # 5 folds verification
+  kf = StratifiedKFold(5, shuffle=True)  # 5 folds verification
   scores = []
-  for train_index, test_index in kf.split(x_train):
-    print(y_train[test_index])
+  for train_index, test_index in kf.split(x_train, y_train):
     lr = LogisticRegression(penalty='l2', C=c)
     lr.fit(x_train[train_index], y_train[train_index])
-    y_predict = lr.predict(x_train[test_index])
-    auc_score = roc_auc_score(y_train[test_index], y_predict)
+    y_predict = lr.predict_proba(x_train[test_index])
+
+    y_true = y_train[test_index]
+    # print('train label 0 count %d, train label 1 count %d' % (len(y_true == 0), len(y_true == 1)))
+    auc_score = roc_auc_score(y_train[test_index], y_predict[:, 1])
+    # print('when c is %f, the auc score is %f' %(c, auc_score))
     scores.append(auc_score)
   scores = np.sum(scores) / len(scores)
+  print('When C=%f, the last AUC score=%f' %(c, scores))
   return scores
 
 def find_best_c(x_train, y_train):
@@ -32,7 +36,7 @@ def find_best_c(x_train, y_train):
   for c in c_values:
     recall_val = calc_auc(x_train, y_train, c)
     recall_values.append(recall_val)
-    print('when c = ', c, ', the auc value is ', recall_val)
+    # print('when c = ', c, ', the auc value is ', recall_val)
   max_index = np.argmax(recall_values)
   print('max best_c is ', c_values[max_index])
   return c_values[max_index]
@@ -47,46 +51,37 @@ def load_dataset():
   # undersample_train_proba(dataset)
   oversample_train_proba(dataset)
 
-# 下采样训练
-def undersample_train(dataset):
-  dataset = undersample_select(dataset)
-  labels = dataset.loc[:, 'Class']
-  trdata = dataset[dataset.columns.drop(['Class'])]
-  x_train, x_test, y_train, y_test = train_test_split(trdata, labels, test_size=0.3)
-  
-  best_c = find_best_c(x_train.values, y_train.values)
-  lr = LogisticRegression(penalty='l2', C=best_c)
-  lr.fit(x_train, y_train)
-  y_predict = lr.predict(x_test)
-  recall_val = recall_score(y_test, y_predict)
-  print('recall_val:', recall_val)
-  # plot_confusion_matrix(y_test, y_predict)
+def calc_kfold_ks(x_train, y_train, c, threshold):
+  kf = StratifiedKFold(3, shuffle=True)
+  scores = []
+  for train_index, test_index in kf.split(x_train, y_train):
+    lr = LogisticRegression(penalty='l2', C=c)
+    lr.fit(x_train[train_index], y_train[train_index])
+    predict_proba = lr.predict_proba(x_train[test_index])
+    score = calc_ks(y_train[test_index], predict_proba, threshold)
+    # print('ks val: ', score)
+    scores.append(score)
+  ks_val = np.mean(scores)
+  print('When thresold is %f, the ks value is %f' %(threshold, ks_val))
+  return ks_val
 
-# 下采样训练，且让threshold值可变
-def undersample_train_proba(dataset):
-  dataset = undersample_select(dataset)
-  labels = dataset.loc[:, 'Class']
-  trdata = dataset[dataset.columns.drop(['Class'])]
-  x_train, x_test, y_train, y_test = train_test_split(trdata, labels, test_size=0.3)
-  
-  best_c = find_best_c(x_train.values, y_train.values)
-  lr = LogisticRegression(penalty='l2', C=best_c)
-  lr.fit(x_train, y_train)
-  y_predict_prob = lr.predict_proba(x_test)
+def calc_ks(y_test, y_predict_prob, threshold):
+  y_predict = y_predict_prob[:, 1] > threshold
+  (tn, fp), (fn, tp) = confusion_matrix(y_test, y_predict, labels=[0, 1])
+  tpr = tp / (tp + fn)
+  fpr = fp / (fp + tn)
+  ks_val = tpr - fpr
+  return ks_val
 
+def find_threshold(x_train, y_train, c):
   threshold_vals = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
   ks_values = []
   for i, threshold in enumerate(threshold_vals):
-    y_predict = y_predict_prob[:, 1] > threshold
-    tn, fp, fn, tp = confusion_matrix(y_test, y_predict)
-    tpr = tp / (tp + fn)
-    fpr = fp / (fp + tn)
-    ks_val = tpr - fpr
+    ks_val = calc_kfold_ks(x_train, y_train, c, threshold)
     ks_values.append(ks_val)
-    print('When tpr is %f, the fpr is %f, ks val is %f' % (tpr, fpr, ks_val))
   threshold = threshold_vals[np.argmax(ks_values)]
-  y_predict = y_predict_prob[:, 1] > threshold
-  print('recall val is:', recall_score(y_test, y_predict))
+  print('The last threshold is ', threshold)
+  return threshold
 
 # 使用SMOTE过采样
 def oversample_train_proba(dataset):
@@ -96,31 +91,16 @@ def oversample_train_proba(dataset):
   
   sm = SMOTE()
   x_train, y_train = sm.fit_sample(x_train, y_train)
-  print('train label 0 count %d, train label 1 count %d' % (len(y_train == 0)), len(y_train == 1))
+  # print('train label 0 count %d, train label 1 count %d' % (len(y_train == 0), len(y_train == 1)))
 
   best_c = find_best_c(x_train, y_train)
+  print('the best c is %f' % best_c)
+
+  threshold = find_threshold(x_train, y_train, best_c)
+
   lr = LogisticRegression(penalty='l2', C=best_c)
   lr.fit(x_train, y_train)
   y_predict_prob = lr.predict_proba(x_test)
-
-  threshold_vals = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-  ks_values = []
-  for i, threshold in enumerate(threshold_vals):
-    y_predict = y_predict_prob[:, 1] > threshold
-    tn, fp, fn, tp = confusion_matrix(y_test, y_predict)
-    tpr = tp / (tp + fn)
-    fpr = fp / (fp + tn)
-    ks_val = tpr - fpr
-    ks_values.append(ks_val)
-    print('When tpr is %f, the fpr is %f, ks val is %f' % (tpr, fpr, ks_val))
-  threshold = threshold_vals[np.argmax(ks_values)]
   y_predict = y_predict_prob[:, 1] > threshold
   print('recall val is:', recall_score(y_test, y_predict))
   
-def undersample_select(dataset):
-  pcount = len(dataset[dataset['Class'] == 1])
-  nlabels = dataset[dataset['Class'] == 0]
-  n_indexs = np.random.choice(nlabels.index, pcount)
-  
-  undersample_ds = np.concatenate([dataset[dataset['Class'] == 1], dataset.loc[n_indexs]])
-  return pd.DataFrame(undersample_ds, columns=dataset.columns)
